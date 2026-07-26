@@ -11,17 +11,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy package files first to leverage layer caching
-COPY package*.json ./
-
-# Install node dependencies
-RUN npm ci
-
-# Copy full application code
+# Copy full source code into image
 COPY . .
 
-# Compile Tailwind CSS output
-RUN npm run build:css
+# Install dependencies and build native bindings + CSS assets
+RUN npm ci
 
 # Default container host binding
 ENV HOST=0.0.0.0

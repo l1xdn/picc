@@ -12,6 +12,9 @@ import { sendMessage, sendMessageStream, getModelQuotas, getSubscriptionTier, is
 import { mountWebUI } from './webui/index.js';
 import { config } from './config.js';
 
+import { ensureSeededConfig } from './utils/seed-config.js';
+ensureSeededConfig();
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 import { forceRefresh } from './auth/token-extractor.js';
