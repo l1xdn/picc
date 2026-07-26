@@ -1,24 +1,22 @@
-# Antigravity Claude Proxy
+# Antigravity Claude Proxy & Unified Model Router
 
-[![npm version](https://img.shields.io/npm/v/antigravity-claude-proxy.svg)](https://www.npmjs.com/package/antigravity-claude-proxy)
-[![npm downloads](https://img.shields.io/npm/dm/antigravity-claude-proxy.svg)](https://www.npmjs.com/package/antigravity-claude-proxy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A proxy server that exposes an **Anthropic-compatible API** backed by **Antigravity's Cloud Code**, letting you use Claude and Gemini models with **Claude Code CLI** and **OpenClaw / ClawdBot**.
+An advanced proxy server and local multi-provider router that exposes **Anthropic-compatible** (`/v1/messages`) and **OpenAI-compatible** (`/v1/chat/completions`) APIs. It is backed by **Google Cloud Code / Antigravity**, **Anthropic**, **OpenAI Codex**, **GitHub Copilot**, and direct API key providers, enabling seamless use with **Claude Code CLI**, **Pi Coding Agent**, **OpenClaw / ClawdBot**, and any standard LLM client.
 
 ![Antigravity Claude Proxy Banner](images/banner.png)
 
-> **⚠️ WARNING:** Google has been issuing ToS violation bans on accounts connected to this proxy. Use at your own risk.
+> **⚠️ WARNING:** Google has been issuing ToS violation bans on accounts connected to Cloud Code proxying. Use at your own risk.
 
 <details>
 <summary><strong>⚠️ Terms of Service Warning — Read Before Installing</strong></summary>
 
 > [!CAUTION]
-> Using this proxy may violate Google's Terms of Service. A small number of users have reported their Google accounts being **banned** or **shadow-banned** (restricted access without explicit notification).
+> Using Google Cloud Code via an unofficial proxy may violate Google's Terms of Service. A small number of users have reported their Google accounts being **banned** or **shadow-banned** (restricted access without explicit notification).
 >
 > **By using this proxy, you acknowledge:**
-> - This is an unofficial tool not endorsed by Google
-> - Your account may be suspended or permanently banned
+> - This is an unofficial tool not endorsed by Google or Anthropic
+> - Your Google account may be suspended or permanently banned
 > - You assume all risks associated with using this proxy
 >
 > **Recommendation:** Do not use your main account. Use a burner account instead, and optionally add it to your main account's family plan if needed.
@@ -27,184 +25,171 @@ A proxy server that exposes an **Anthropic-compatible API** backed by **Antigrav
 
 ---
 
-## How It Works
+## Overview
+
+**Antigravity Claude Proxy & Unified Model Router** acts as both a protocol translation proxy and an intelligent, multi-account local gateway:
+
+1. **Cloud Code Proxy**: Translates Anthropic Messages API format into Google's Cloud Code Generative AI format, giving you access to Claude (Opus, Sonnet, Haiku) and Gemini models through Google account quotas with full thinking and streaming support.
+2. **Unified Model Router**: Acts as a local gateway powered by the Pi provider runtime. Pool accounts across multiple providers (Cloud Code, Anthropic, OpenAI Codex, GitHub Copilot, custom API keys) with intelligent load balancing and automatic failover.
+3. **Dual API Compatibility**: Exposes both **Anthropic Messages API** (`POST /v1/messages`) and **OpenAI Chat Completions API** (`POST /v1/chat/completions`) endpoints.
+4. **Multi-Account Load Balancing**: Supports **Sticky**, **Round Robin**, and **Hybrid** account rotation strategies with token bucket rate-limiting, health tracking, and quota monitoring.
+5. **Inbound API Keys**: Issue hashed API keys with granular permissions—restrict by provider, exact model or wildcard patterns, rate limits, daily token caps, and monthly cost budgets.
+6. **Client Integrations**: Native configuration for **Claude Code CLI**, **Pi Coding Agent**, **OpenClaw / ClawdBot**, and standard SDKs.
+
+---
+
+## Architecture
 
 ```
-┌──────────────────┐     ┌─────────────────────┐     ┌────────────────────────────┐
-│   Claude Code    │────▶│  This Proxy Server  │────▶│  Antigravity Cloud Code    │
-│   (Anthropic     │     │  (Anthropic → Google│     │  (daily-cloudcode-pa.      │
-│    API format)   │     │   Generative AI)    │     │   sandbox.googleapis.com)  │
-└──────────────────┘     └─────────────────────┘     └────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────┐
+│                                    Client Applications                                   │
+│  Claude Code CLI  │  Pi Coding Agent  │  OpenClaw / ClawdBot  │  OpenAI / Anthropic SDKs │
+└────────────────────────────────────────────┬─────────────────────────────────────────────┘
+                                             │
+                                             ▼
+┌──────────────────────────────────────────────────────────────────────────────────────────┐
+│                     Antigravity Proxy & Unified Model Router                             │
+│                                                                                          │
+│  ┌─────────────────────────┐  ┌─────────────────────────┐  ┌──────────────────────────┐  │
+│  │ POST /v1/messages       │  │ POST /v1/chat/...       │  │ Inbound API Keys         │  │
+│  │ (Anthropic Protocol)    │  │ (OpenAI Protocol)       │  │ & Spending Limits        │  │
+│  └────────────┬────────────┘  └────────────┬────────────┘  └─────────────┬────────────┘  │
+│               └──────────────────────┬─────┘                             │               │
+│                                      ▼                                   │               │
+│                    ┌───────────────────────────────────┐                 │               │
+│                    │ Multi-Account Load Balancer       │◄────────────────┘               │
+│                    │ (Sticky / Round-Robin / Hybrid)   │                               │
+│                    └─────────────────┬─────────────────┘                                 │
+└──────────────────────────────────────┼───────────────────────────────────────────────────┘
+                                       │
+            ┌──────────────────────────┼──────────────────────────┐
+            ▼                          ▼                          ▼
+┌───────────────────────┐  ┌───────────────────────┐  ┌───────────────────────┐
+│  Google Cloud Code    │  │  Anthropic / OpenAI   │  │ Upstream API Keys     │
+│  (Multi-Account OAuth)│  │  (Subscription OAuth) │  │ (OpenAI, Groq, etc.)  │
+└───────────────────────┘  └───────────────────────┘  └───────────────────────┘
 ```
 
-1. Receives requests in **Anthropic Messages API format**
-2. Uses OAuth tokens from added Google accounts (or Antigravity's local database)
-3. Transforms to **Google Generative AI format** with Cloud Code wrapping
-4. Sends to Antigravity's Cloud Code API
-5. Converts responses back to **Anthropic format** with full thinking/streaming support
+---
 
 ## Prerequisites
 
 - **Node.js** 22.19 or later (required by the Pi provider runtime)
-- **Antigravity** installed (for single-account mode) OR Google account(s) for multi-account mode
+- **Git** (for cloning the repository)
+- **Antigravity App** (optional; automatically detected for single-account Cloud Code mode) OR Google account(s) for multi-account Cloud Code mode
 
 ---
 
-## Installation
+## Installation & Setup
 
-### Option 1: npm (Recommended)
-
-```bash
-# Run directly with npx (no install needed)
-npx antigravity-claude-proxy@latest start
-
-# Or install globally
-npm install -g antigravity-claude-proxy@latest
-antigravity-claude-proxy start
-```
-
-### Option 2: Clone Repository
+### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/badri-s2001/antigravity-claude-proxy.git
-cd antigravity-claude-proxy
+git clone https://github.com/l1xdn/picc.git
+cd picc
 npm install
-npm start
 ```
 
----
+### 2. Configure OAuth Credentials (For Cloud Code Multi-Account)
 
-## Quick Start
-
-### 1. Start the Proxy Server
-
-```bash
-# If installed globally
-picc start
-# or: antigravity-claude-proxy start
-
-# If using npx
-npx antigravity-claude-proxy@latest start
-
-# If cloned locally
-npm start
-```
-
-The server launches as a **background process** on `http://localhost:8080` by default and survives terminal closure.
-
-| Command | Description |
-| :--- | :--- |
-| `picc start` | Launch proxy in the background |
-| `picc stop` | Shut down the proxy |
-| `picc restart` | Restart the proxy |
-| `picc status` | Check proxy health and PID |
-| `picc ui` | Open the web dashboard |
-| `picc start --log` | Run in foreground with visible logs |
-
-### 2. Link Account(s)
-
-Google Cloud Code login requires your own Desktop OAuth client. Store it outside the repository:
+Google Cloud Code login requires a Desktop OAuth client. Store your configuration outside the repository directory:
 
 ```bash
 mkdir -p ~/.config/antigravity-proxy
 cp .env.example ~/.config/antigravity-proxy/.env
 chmod 600 ~/.config/antigravity-proxy/.env
-# Edit GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET in that file.
 ```
 
-Create the client in Google Cloud Console as a **Desktop app**. Never commit OAuth clients, provider keys, exported accounts, or router credentials. See [Advanced Configuration](docs/configuration.md) for supported secret locations.
+Edit `~/.config/antigravity-proxy/.env` and set your `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` created in the Google Cloud Console as a **Desktop application**.
 
-Choose one of the following methods to authorize the proxy:
-
-#### **Method A: Web Dashboard (Recommended)**
-
-1. With the proxy running, open `http://localhost:8080` in your browser.
-2. Navigate to the **Accounts** tab and click **Add Account**.
-3. Complete the Google OAuth authorization in the popup window.
-
-> **Headless/Remote Servers**: If running on a server without a browser, the WebUI supports a "Manual Authorization" mode. After clicking "Add Account", you can copy the OAuth URL, complete authorization on your local machine, and paste the authorization code back.
-
-#### **Method B: CLI (Desktop or Headless)**
-
-If you prefer the terminal or are on a remote server:
+### 3. Start the Server
 
 ```bash
-# Desktop (opens browser)
-antigravity-claude-proxy accounts add
+# Start in background (default port 8080)
+npm start
 
-# Headless (Docker/SSH)
-antigravity-claude-proxy accounts add --no-browser
+# Or run in dev mode with live reload
+npm run dev
+
+# Or run with CSS watching + dev server
+npm run dev:full
 ```
 
-> For full CLI account management options, run `antigravity-claude-proxy accounts --help`.
-
-#### **Method C: Automatic (Antigravity Users)**
-
-If you have the **Antigravity** app installed and logged in, the proxy will automatically detect your local session. No additional setup is required.
-
-To use a custom port:
-
-```bash
-PORT=3001 antigravity-claude-proxy start
-```
-
-### 3. Verify It's Working
-
-```bash
-# Health check
-curl http://localhost:8080/health
-
-# Check account status and quota limits
-curl "http://localhost:8080/account-limits?format=table"
-```
+The management dashboard will be available at **`http://localhost:8080`**.
 
 ---
 
-## Unified Model Router
+## Account Management
 
-The proxy also acts as a local multi-provider router using Pi's maintained provider runtime.
+### Method A: Web Dashboard (Recommended)
 
-- Connect subscription/OAuth providers from **Accounts**, import upstream provider credentials from **Imported Keys**, and create scoped client access credentials from **API Keys**.
-- Connect supported subscription OAuth accounts for Anthropic, OpenAI Codex, and GitHub Copilot.
-- Apply the same Sticky, Round Robin, or Hybrid distribution strategy to every provider account pool, including health, quota, and failover signals.
-- Add multiple credentials per provider; requests rotate only across accounts that support the selected model when the provider exposes account-level availability.
-- Create hashed inbound API keys scoped by provider, exact model/wildcard, expiration, request rate, daily tokens, and monthly estimated value.
-- Use either `POST /v1/messages` (Anthropic) or `POST /v1/chat/completions` (OpenAI).
-- Review input/output/cache/reasoning tokens and estimated public API cost in **Expenses**.
-- Import the account-aware available catalog, local URL, and a dedicated key into Pi from **Settings → Pi Agent**.
+1. Open `http://localhost:8080` in your browser.
+2. Navigate to **Accounts**.
+3. Click **Add Account** to complete Google OAuth or link subscription OAuth accounts (Anthropic, OpenAI Codex, GitHub Copilot).
 
-Non-Cloud-Code models use collision-safe names such as `anthropic/claude-opus-4-6`, `openai/gpt-5.4`, and `nvidia/<model-id>`. Existing unprefixed Cloud Code model IDs remain compatible. See [Router Architecture](docs/router-architecture.md).
+> **Headless / Remote Servers**: Click "Add Account" in the Web UI and select "Manual Authorization" to complete OAuth on your local machine and paste the authorization code back.
 
-> Provider quota remaining is displayed when the provider exposes it. Most API-key providers do not offer a quota endpoint, so those accounts show **quota not reported** while router token and expense accounting remains available.
+### Method B: CLI Account Commands
+
+```bash
+# Add Google account via interactive browser
+npm run accounts:add
+
+# Headless / SSH server setup
+npm run accounts:add -- --no-browser
+
+# List added accounts and status
+npm run accounts:list
+
+# Verify account tokens and quota status
+npm run accounts:verify
+```
+
+### Method C: Automatic Detection (Antigravity Users)
+
+If you have the **Antigravity** app installed and logged in locally, the proxy automatically detects your active session without requiring manual OAuth setup.
 
 ---
 
-## Using with Claude Code CLI
+## Unified Model Router & Features
 
-### Configure Claude Code
+The router functions as a centralized gateway for all your AI models:
 
-You can configure these settings in two ways:
+### 1. Dual API Protocols
+- **Anthropic Format**: `POST /v1/messages` — Full support for message turns, content blocks, tool calling, system prompts, prompt caching, and thinking signatures.
+- **OpenAI Format**: `POST /v1/chat/completions` — Support for chat completion requests, streaming response chunks, tool parameters, and standard OpenAI parameters.
 
-#### **Via Web Console (Recommended)**
+### 2. Provider Account Pools & Routing Strategies
+Pool multiple accounts per provider to maximize throughput and bypass rate limits. Available strategies:
+- **Hybrid (Default)**: Dynamic scoring based on account health, remaining token buckets, quota levels, and usage history.
+- **Sticky**: Routes requests to the same active account until rate limits or quota thresholds are met, minimizing session context switching.
+- **Round-Robin**: Sequentially rotates requests across all available accounts in the pool.
 
-1. Open the WebUI at `http://localhost:8080`.
-2. Go to **Settings** → **Claude CLI**.
-3. Use the **Connection Mode** toggle to switch between:
-   - **Proxy Mode**: Uses the local proxy server (Antigravity Cloud Code). Configure models, base URL, and presets here.
-   - **Paid Mode**: Uses the official Anthropic Credits directly (requires your own subscription). This hides proxy settings to prevent accidental misconfiguration.
-4. Click **Apply to Claude CLI** to save your changes.
+### 3. Inbound API Keys & Access Control
+Manage custom client keys from **WebUI → API Keys**:
+- Scope keys to specific providers or model patterns (e.g., `anthropic/*`, `google/*`, or exact model IDs).
+- Set per-minute rate limits, daily token caps, and monthly cost thresholds.
+- Authenticate incoming requests using `Authorization: Bearer <key>` or `x-api-key: <key>`.
 
-> [!TIP] > **Configuration Precedence**: System environment variables (set in shell profile like `.zshrc`) take precedence over the `settings.json` file. If you use the Web Console to manage settings, ensure you haven't manually exported conflicting variables in your terminal.
+### 4. Expense & Token Tracking
+Review real-time metrics in **WebUI → Expenses**:
+- Breakdown of input, output, cache-read, cache-creation, and reasoning tokens.
+- Public API cost estimations across all linked providers.
 
-#### **Manual Configuration**
+---
 
-Create or edit the Claude Code settings file:
+## Client Integrations
 
-**macOS:** `~/.claude/settings.json`
-**Linux:** `~/.claude/settings.json`
-**Windows:** `%USERPROFILE%\.claude\settings.json`
+### 1. Claude Code CLI
 
-Add this configuration:
+#### Web UI Configuration (Recommended)
+1. Open `http://localhost:8080` and navigate to **Settings → Claude CLI**.
+2. Switch between **Proxy Mode** (local proxy) and **Paid Mode** (direct Anthropic billing).
+3. Select preferred default models for Opus, Sonnet, and Haiku tiers.
+4. Click **Apply to Claude CLI**.
+
+#### Manual Configuration
+Add to `~/.claude/settings.json`:
 
 ```json
 {
@@ -221,121 +206,93 @@ Add this configuration:
 }
 ```
 
-Or to use Gemini models:
+Then run `claude` in your terminal.
 
-```json
-{
-  "env": {
-    "ANTHROPIC_AUTH_TOKEN": "test",
-    "ANTHROPIC_BASE_URL": "http://localhost:8080",
-    "ANTHROPIC_MODEL": "gemini-3.1-pro-low",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "gemini-3.1-pro-low",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "gemini-3.5-flash-low",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "gemini-3.5-flash-low",
-    "CLAUDE_CODE_SUBAGENT_MODEL": "gemini-3.5-flash-low",
-    "ENABLE_EXPERIMENTAL_MCP_CLI": "true"
-  }
-}
+---
+
+### 2. Pi Coding Agent
+
+The proxy seamlessly connects with **Pi**:
+1. In the Web UI, go to **Settings → Pi Agent**.
+2. Copy the generated configuration snippet or click **Import Catalog**.
+3. Use non-Cloud-Code prefixed models (e.g., `anthropic/claude-opus-4-6`, `openai/gpt-5.4`, `nvidia/<model-id>`) alongside Cloud Code model IDs.
+
+---
+
+### 3. OpenClaw / ClawdBot
+
+Set your OpenClaw / ClawdBot environment variables or config:
+- `ANTHROPIC_BASE_URL`: `http://localhost:8080`
+- `ANTHROPIC_API_KEY`: `test` (or your custom router API key)
+
+See [OpenClaw Integration Guide](docs/openclaw.md) for detailed instructions.
+
+---
+
+### 4. Custom Applications & SDKs
+
+#### Python (Anthropic SDK)
+```python
+import anthropic
+
+client = anthropic.Anthropic(
+    base_url="http://localhost:8080",
+    api_key="test" # or router API key
+)
+
+response = client.messages.create(
+    model="claude-opus-4-6-thinking",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "Hello world!"}]
+)
+print(response.content[0].text)
 ```
 
-### Load Environment Variables
+#### Python (OpenAI SDK)
+```python
+import openai
 
-Add the proxy settings to your shell profile:
+client = openai.OpenAI(
+    base_url="http://localhost:8080/v1",
+    api_key="test" # or router API key
+)
 
-**macOS / Linux:**
+response = client.chat.completions.create(
+    model="gemini-3.1-pro-low",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+print(response.choices[0].message.content)
+```
 
+#### cURL
 ```bash
-echo 'export ANTHROPIC_BASE_URL="http://localhost:8080"' >> ~/.zshrc
-echo 'export ANTHROPIC_AUTH_TOKEN="test"' >> ~/.zshrc
-source ~/.zshrc
+# Anthropic endpoint
+curl http://localhost:8080/v1/messages \
+  -H "x-api-key: test" \
+  -H "content-type: application/json" \
+  -H "anthropic-version: 2023-06-01" \
+  -d '{
+    "model": "claude-sonnet-4-6",
+    "max_tokens": 100,
+    "messages": [{"role": "user", "content": "Hello"}]
+  }'
+
+# OpenAI endpoint
+curl http://localhost:8080/v1/chat/completions \
+  -H "Authorization: Bearer test" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gemini-3.5-flash-low",
+    "messages": [{"role": "user", "content": "Hello"}]
+  }'
 ```
-
-> For Bash users, replace `~/.zshrc` with `~/.bashrc`
-
-**Windows (PowerShell):**
-
-```powershell
-Add-Content $PROFILE "`n`$env:ANTHROPIC_BASE_URL = 'http://localhost:8080'"
-Add-Content $PROFILE "`$env:ANTHROPIC_AUTH_TOKEN = 'test'"
-. $PROFILE
-```
-
-**Windows (Command Prompt):**
-
-```cmd
-setx ANTHROPIC_BASE_URL "http://localhost:8080"
-setx ANTHROPIC_AUTH_TOKEN "test"
-```
-
-Restart your terminal for changes to take effect.
-
-### Run Claude Code
-
-```bash
-# Make sure the proxy is running first
-antigravity-claude-proxy start
-
-# In another terminal, run Claude Code
-claude
-```
-
-> **Note:** If Claude Code asks you to select a login method, add `"hasCompletedOnboarding": true` to `~/.claude.json` (macOS/Linux) or `%USERPROFILE%\.claude.json` (Windows), then restart your terminal and try again.
-
-### Proxy Mode vs. Paid Mode
-
-Toggle in **Settings** → **Claude CLI**:
-
-| Feature | 🔌 Proxy Mode | 💳 Paid Mode |
-| :--- | :--- | :--- |
-| **Backend** | Local Server (Antigravity) | Official Anthropic Credits |
-| **Cost** | Free (Google Cloud) | Paid (Anthropic Credits) |
-| **Models** | Claude + Gemini | Claude Only |
-
-**Paid Mode** automatically clears proxy settings so you can use your official Anthropic account directly.
-
-### Multiple Claude Code Instances (Optional)
-
-To run both the official Claude Code and Antigravity version simultaneously, add this alias:
-
-**macOS / Linux:**
-
-```bash
-# Add to ~/.zshrc or ~/.bashrc
-alias claude-antigravity='CLAUDE_CONFIG_DIR=~/.claude-account-antigravity ANTHROPIC_BASE_URL="http://localhost:8080" ANTHROPIC_AUTH_TOKEN="test" command claude'
-```
-
-**Windows (PowerShell):**
-
-```powershell
-# Add to $PROFILE
-function claude-antigravity {
-    $env:CLAUDE_CONFIG_DIR = "$env:USERPROFILE\.claude-account-antigravity"
-    $env:ANTHROPIC_BASE_URL = "http://localhost:8080"
-    $env:ANTHROPIC_AUTH_TOKEN = "test"
-    claude
-}
-```
-
-Then run `claude` for official API or `claude-antigravity` for this proxy.
-
-### Running as a System Service (systemd)
-
-When running as a systemd service, the proxy runs under a different user (e.g. `root`), so it can't find your Claude CLI settings at `~/.claude/settings.json`. Set `CLAUDE_CONFIG_PATH` to point to the real user's `.claude` directory:
-
-```ini
-# /etc/systemd/system/antigravity-proxy.service
-[Service]
-Environment=CLAUDE_CONFIG_PATH=/home/youruser/.claude
-ExecStart=/usr/bin/node /path/to/antigravity-claude-proxy/src/index.js
-```
-
-Without this, the WebUI's Claude CLI tab won't be able to read or write your Claude Code configuration.
 
 ---
 
 ## Documentation
 
 - [Available Models](docs/models.md)
+- [Router Architecture](docs/router-architecture.md)
 - [Multi-Account Load Balancing](docs/load-balancing.md)
 - [Web Management Console](docs/web-console.md)
 - [Advanced Configuration](docs/configuration.md)
@@ -350,12 +307,11 @@ Without this, the WebUI's Claude CLI tab won't be able to read or write your Cla
 
 ---
 
-## Credits
+## Credits & Acknowledgments
 
-This project is a fork / extension of [antigravity-claude-proxy](https://github.com/badrisnarayanan/antigravity-claude-proxy), extending it to support multiple accounts, additional providers, and turning it into a general model router.
+This project is a fork and extension of [antigravity-claude-proxy](https://github.com/badrisnarayanan/antigravity-claude-proxy), expanding its original single-purpose Cloud Code proxy into a multi-account load balancer and unified model router with multi-provider OAuth, dual OpenAI/Anthropic API support, and inbound API key management.
 
 It also draws insights and code from:
-
 - [opencode-antigravity-auth](https://github.com/NoeFabris/opencode-antigravity-auth) - Antigravity OAuth plugin for OpenCode
 - [claude-code-proxy](https://github.com/1rgs/claude-code-proxy) - Anthropic API proxy using LiteLLM
 
