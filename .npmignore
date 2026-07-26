@@ -1,0 +1,36 @@
+# Exclude tests
+tests/
+
+# Exclude GitHub workflows
+.github/
+
+# Exclude documentation (except README)
+CLAUDE.md
+CHANGELOG.md
+CONTRIBUTING.md
+docs/
+
+# Exclude dev files and local secrets
+.env*
+*.pem
+*.key
+*.p12
+*.pfx
+*.credentials.json
+*.secrets.json
+credentials.json
+secrets/
+config.json
+config.local.json
+accounts.json
+router-auth.json
+router-api-keys.json
+*.db
+*.sqlite*
+.claude/
+.vscode/
+.idea/
+
+# Exclude misc
+*.log
+.DS_Store

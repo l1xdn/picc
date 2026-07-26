@@ -1,0 +1,84 @@
+# Dependencies
+node_modules/
+
+# Environment and local secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.credentials.json
+*.secrets.json
+credentials.json
+secrets/
+
+# Local application configuration (may contain passwords or API keys)
+config.json
+config.local.json
+accounts.json
+router-auth.json
+router-api-keys.json
+claude-presets.json
+server-presets.json
+
+# Runtime databases and process state
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.pid
+data/
+.antigravity-claude-proxy/
+
+# Logs, diagnostics, and generated exports
+*.log
+log.txt
+logs/
+proxy-logs-*.txt
+account-export*.json
+antigravity-accounts-*.json
+coverage/
+.nyc_output/
+*.lcov
+
+# Build and cache output
+dist/
+build/
+.cache/
+.parcel-cache/
+.turbo/
+.tmp/
+tmp/
+*.tsbuildinfo
+
+# Test artifacts
+playwright-report/
+test-results/
+tests/utils/*.png
+tests/utils/*.jpg
+tests/utils/*.jpeg
+
+# Editors and local tooling
+.vscode/
+.idea/
+.history/
+*.swp
+*.swo
+*~
+
+# OS metadata
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+Desktop.ini
+
+# Local agent state
+.claude/
+.deepvcode/
+.pi/

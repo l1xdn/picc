@@ -1,0 +1,57 @@
+<div x-data="routerManager('imported-keys')" class="view-container-centered space-y-6">
+    <header class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+            <div class="text-[10px] uppercase tracking-[.2em] text-neon-cyan font-mono">Upstream authentication</div>
+            <h2 class="text-2xl font-bold text-white mt-1">Imported Keys</h2>
+            <p class="text-sm text-gray-500 mt-1">Add provider API keys that this router uses to make upstream model requests.</p>
+        </div>
+        <input class="input input-sm bg-space-800 border-space-border w-64" placeholder="Find a provider…" x-model="providerSearch">
+    </header>
+
+    <div class="alert bg-neon-cyan/5 border-neon-cyan/20 text-sm shadow-none">
+        <svg class="w-5 h-5 stroke-neon-cyan shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span class="text-gray-400">These are <strong class="text-white">upstream credentials</strong>, not keys given to local clients. Credentials are stored separately with <code class="text-neon-cyan">0600</code> permissions.</span>
+    </div>
+
+    <div class="view-card !p-0 overflow-hidden">
+        <div class="p-5 border-b border-space-border flex items-center justify-between">
+            <div><h3 class="text-sm font-semibold text-white">API-key providers</h3><p class="text-[11px] text-gray-600 mt-1">Multiple keys per provider are rotated as separate accounts</p></div>
+            <span class="text-[10px] text-gray-600 font-mono" x-text="apiKeyProviders.length + ' providers'"></span>
+        </div>
+        <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-px bg-space-border/50">
+            <template x-for="provider in apiKeyProviders" :key="provider.id">
+                <section class="bg-space-900 p-4 min-h-40">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0"><div class="text-sm text-white font-medium truncate" x-text="provider.name"></div><div class="text-[10px] text-gray-600 font-mono truncate" x-text="provider.id"></div></div>
+                        <span class="badge badge-sm" :class="apiKeyAccounts(provider).length ? 'badge-success' : 'badge-ghost'" x-text="apiKeyAccounts(provider).length ? `${apiKeyAccounts(provider).length} imported` : 'not imported'"></span>
+                    </div>
+                    <div class="mt-4 space-y-2">
+                        <template x-for="account in apiKeyAccounts(provider)" :key="account.id">
+                            <div class="flex items-center gap-2 px-3 py-2 rounded bg-black/20 border border-space-border/40">
+                                <span class="w-1.5 h-1.5 rounded-full" :class="account.enabled ? 'bg-neon-green' : 'bg-gray-600'"></span>
+                                <div class="min-w-0 flex-1"><div class="text-[11px] text-gray-300 truncate" x-text="account.label"></div><div class="text-[9px] font-mono mt-0.5" :class="account.quota?.status === 'reported' ? 'text-neon-green/70' : 'text-gray-600'" :title="account.quota?.reason || ''" x-text="'API KEY · ' + quotaLabel(account)"></div></div>
+                                <button class="text-gray-600 hover:text-red-400 p-1" @click="removeProviderAccount(provider, account)" title="Remove imported key">×</button>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="flex items-center justify-between mt-4">
+                        <div class="text-[10px] text-gray-600 font-mono"><span x-text="provider.modelCount"></span> models</div>
+                        <button class="btn btn-xs btn-ghost text-neon-cyan" @click="configureProvider(provider)">Add key</button>
+                    </div>
+                </section>
+            </template>
+        </div>
+    </div>
+
+    <dialog id="provider_credential_modal" class="modal">
+        <div class="modal-box bg-space-900 border border-space-border">
+            <h3 class="font-bold text-white">Import provider API key</h3>
+            <p class="text-xs text-gray-500 mt-1" x-text="selectedProvider?.name"></p>
+            <label class="form-control mt-5"><span class="label-text text-xs">Account label</span><input type="text" class="input input-bordered bg-space-800" x-model="apiKeyLabel" placeholder="Work account"></label>
+            <label class="form-control mt-4"><span class="label-text text-xs">API key</span><input type="password" class="input input-bordered bg-space-800" x-model="apiKeyInput" autocomplete="off" placeholder="Paste upstream provider key"></label>
+            <details class="mt-4"><summary class="text-xs text-gray-500 cursor-pointer hover:text-gray-300">Advanced provider environment</summary><label class="form-control mt-2"><span class="label-text text-xs">Optional JSON</span><textarea class="textarea textarea-bordered bg-space-800 font-mono text-xs" x-model="apiEnvInput"></textarea></label></details>
+            <div class="modal-action"><button class="btn btn-ghost" @click="$el.closest('dialog').close()">Cancel</button><button class="btn btn-primary" @click="saveProviderKey()" :disabled="!apiKeyInput">Import key</button></div>
+        </div>
+        <form method="dialog" class="modal-backdrop"><button>close</button></form>
+    </dialog>
+</div>
