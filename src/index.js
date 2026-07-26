@@ -5,6 +5,7 @@
 
 // Initialize proxy support BEFORE any other imports that may use fetch
 import './utils/proxy.js';
+import './utils/seed-config.js';
 
 import app, { accountManager } from './server.js';
 import { DEFAULT_PORT } from './constants.js';

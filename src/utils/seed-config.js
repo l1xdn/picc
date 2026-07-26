@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { logger } from './logger.js';
 
 const CONFIG_DIR = path.join(os.homedir(), '.config', 'antigravity-proxy');
 
@@ -24,13 +23,13 @@ export function ensureSeededConfig() {
 
             if (envVal) {
                 try {
-                    const decoded = Buffer.from(envVal, 'base64').toString('utf8');
-                    JSON.parse(decoded); // Validate JSON
+                    const decoded = Buffer.from(envVal.trim(), 'base64').toString('utf8');
+                    JSON.parse(decoded); // Validate JSON format
                     fs.writeFileSync(targetPath, decoded, { encoding: 'utf8', mode: 0o600 });
-                    logger.info(`[Seed] Seeded ${seed.file} from environment variable ${seed.envVar}`);
+                    console.log(`[Seed] Seeded ${seed.file} from environment variable ${seed.envVar}`);
                     continue;
                 } catch (err) {
-                    logger.error(`[Seed] Failed to decode/parse ${seed.envVar}:`, err.message);
+                    console.error(`[Seed] Failed to decode/parse ${seed.envVar}:`, err.message);
                 }
             }
 
@@ -40,13 +39,16 @@ export function ensureSeededConfig() {
                 try {
                     const content = fs.readFileSync(seedFilePath, 'utf8');
                     fs.writeFileSync(targetPath, content, { encoding: 'utf8', mode: 0o600 });
-                    logger.info(`[Seed] Seeded ${seed.file} from local seed directory`);
+                    console.log(`[Seed] Seeded ${seed.file} from local seed directory`);
                 } catch (err) {
-                    logger.error(`[Seed] Failed to copy seed file ${seed.file}:`, err.message);
+                    console.error(`[Seed] Failed to copy seed file ${seed.file}:`, err.message);
                 }
             }
         }
     } catch (err) {
-        logger.error('[Seed] Error in ensureSeededConfig:', err);
+        console.error('[Seed] Error in ensureSeededConfig:', err);
     }
 }
+
+// Execute immediately on module import so config files exist before any other module loads
+ensureSeededConfig();

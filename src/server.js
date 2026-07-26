@@ -4,6 +4,7 @@
  * Supports multi-account load balancing
  */
 
+import './utils/seed-config.js';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -11,9 +12,6 @@ import { fileURLToPath } from 'url';
 import { sendMessage, sendMessageStream, getModelQuotas, getSubscriptionTier, isValidModel } from './cloudcode/index.js';
 import { mountWebUI } from './webui/index.js';
 import { config } from './config.js';
-
-import { ensureSeededConfig } from './utils/seed-config.js';
-ensureSeededConfig();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
