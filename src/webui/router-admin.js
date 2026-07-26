@@ -1,4 +1,4 @@
-import { getProviderStatuses, piModels } from '../router/model-registry.js';
+import { getProviderStatuses, piModels, providerAccountManager } from '../router/model-registry.js';
 import { routerCredentialStore } from '../router/credential-store.js';
 import { routerApiKeyStore } from '../router/api-key-store.js';
 import { startOAuth, getOAuthSession, submitOAuthInput, cancelOAuth } from '../router/oauth-manager.js';
@@ -7,6 +7,7 @@ import { getUnifiedCatalog } from '../router/catalog.js';
 import { getProviderQuotas } from '../router/quota-manager.js';
 import { importRouterToPi } from '../utils/pi-config.js';
 import { DEFAULT_PORT } from '../constants.js';
+import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
 
 function errorResponse(res, error, fallback = 500) {
@@ -17,7 +18,17 @@ function errorResponse(res, error, fallback = 500) {
 export function mountRouterAdmin(app, accountManager) {
     app.get('/api/router/providers', async (_req, res) => {
         try {
-            res.json({ status: 'ok', providers: await getProviderStatuses() });
+            const providers = await getProviderStatuses();
+            const health = new Map(providerAccountManager.getHealthData().map(pool => [pool.provider, pool]));
+            for (const provider of providers) {
+                const pool = health.get(provider.id);
+                provider.strategy = pool?.strategy || config.accountSelection?.strategy || 'hybrid';
+                provider.accounts = (provider.accounts || []).map(account => ({
+                    ...account,
+                    strategyHealth: pool?.accounts.find(item => item.id === account.id) || null
+                }));
+            }
+            res.json({ status: 'ok', providers });
         } catch (error) { errorResponse(res, error); }
     });
 

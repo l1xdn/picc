@@ -79,6 +79,11 @@ export class BaseStrategy {
         // Skip disabled accounts
         if (account.enabled === false) return false;
 
+        // Provider account pools may expose model availability per credential.
+        if (modelId && account.availableModelIds instanceof Set && !account.availableModelIds.has(modelId)) {
+            return false;
+        }
+
         // Check if account is cooling down (matches opencode-antigravity-auth)
         if (isAccountCoolingDown(account)) return false;
 

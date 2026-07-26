@@ -14,6 +14,8 @@ const path = require('path');
     try {
         const { RouterApiKeyStore } = await import('../src/router/api-key-store.js');
         const { RouterCredentialStore } = await import('../src/router/credential-store.js');
+        const { ProviderAccountManager } = await import('../src/router/provider-account-manager.js');
+        const { config } = await import('../src/config.js');
         const { resolveModel } = await import('../src/router/model-registry.js');
         const { anthropicRequestToContext, openAIRequestToContext, assistantToOpenAI } = await import('../src/router/protocol.js');
         const { calculateEstimatedCost, UsageLedger } = await import('../src/router/usage-ledger.js');
@@ -77,6 +79,26 @@ const path = require('path');
             ['two', new Set(['b', 'c'])]
         ]))].sort(), ['a', 'b', 'c']);
         assert.strictEqual(unionCatalogModelIds(new Map([['unknown', null]])), null);
+
+        const previousStrategy = config.accountSelection.strategy;
+        config.accountSelection.strategy = 'round-robin';
+        const providerPool = new ProviderAccountManager({
+            credentialStore,
+            models: { getProvider: () => null, getAuth: async () => null }
+        });
+        const rrOne = await providerPool.selectAccount('nvidia', 'model-a');
+        const rrTwo = await providerPool.selectAccount('nvidia', 'model-a');
+        assert(rrOne.account && rrTwo.account);
+        assert.notStrictEqual(rrOne.account.id, rrTwo.account.id, 'provider round-robin must rotate accounts');
+
+        config.accountSelection.strategy = 'sticky';
+        const stickyOne = await providerPool.selectAccount('nvidia', 'model-a');
+        const stickyTwo = await providerPool.selectAccount('nvidia', 'model-a');
+        assert.strictEqual(stickyOne.account.id, stickyTwo.account.id, 'provider sticky strategy must retain its account');
+        providerPool.notifyRateLimit('nvidia', stickyOne.account.id, 'model-a', 60_000);
+        const stickyFailover = await providerPool.selectAccount('nvidia', 'model-a');
+        assert.notStrictEqual(stickyFailover.account.id, stickyOne.account.id, 'provider rate limit must trigger failover');
+        config.accountSelection.strategy = previousStrategy;
 
         const anthropicQuota = parseAnthropicQuota({
             five_hour: { utilization: 40, resets_at: '2030-01-01T00:00:00Z' },

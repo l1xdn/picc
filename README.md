@@ -166,6 +166,7 @@ The proxy also acts as a local multi-provider router using Pi's maintained provi
 
 - Connect subscription/OAuth providers from **Accounts**, import upstream provider credentials from **Imported Keys**, and create scoped client access credentials from **API Keys**.
 - Connect supported subscription OAuth accounts for Anthropic, OpenAI Codex, and GitHub Copilot.
+- Apply the same Sticky, Round Robin, or Hybrid distribution strategy to every provider account pool, including health, quota, and failover signals.
 - Add multiple credentials per provider; requests rotate only across accounts that support the selected model when the provider exposes account-level availability.
 - Create hashed inbound API keys scoped by provider, exact model/wildcard, expiration, request rate, daily tokens, and monthly estimated value.
 - Use either `POST /v1/messages` (Anthropic) or `POST /v1/chat/completions` (OpenAI).
@@ -351,7 +352,9 @@ Without this, the WebUI's Claude CLI tab won't be able to read or write your Cla
 
 ## Credits
 
-This project is based on insights and code from:
+This project is a fork / extension of [antigravity-claude-proxy](https://github.com/badrisnarayanan/antigravity-claude-proxy), extending it to support multiple accounts, additional providers, and turning it into a general model router.
+
+It also draws insights and code from:
 
 - [opencode-antigravity-auth](https://github.com/NoeFabris/opencode-antigravity-auth) - Antigravity OAuth plugin for OpenCode
 - [claude-code-proxy](https://github.com/1rgs/claude-code-proxy) - Anthropic API proxy using LiteLLM
@@ -363,8 +366,6 @@ This project is based on insights and code from:
 MIT
 
 ---
-
-<a href="https://buymeacoffee.com/badrinarayanans" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="50"></a>
 
 ## Star History
 

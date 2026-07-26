@@ -238,6 +238,12 @@ export async function getProviderQuotas(providerStatuses, {
     }));
 }
 
+export function getCachedAccountQuota(providerId, accountId) {
+    const cached = cache.get(`${providerId}:${accountId}`);
+    if (!cached) return null;
+    return { ...cached.value, checkedAt: cached.timestamp };
+}
+
 export function clearQuotaCache() {
     cache.clear();
 }

@@ -24,6 +24,7 @@ import { getAuthorizationUrl, completeOAuthFlow, startCallbackServer } from '../
 import { loadAccounts, saveAccounts } from '../account-manager/storage.js';
 import { getPackageVersion } from '../utils/helpers.js';
 import { mountRouterAdmin } from './router-admin.js';
+import { providerAccountManager } from '../router/model-registry.js';
 
 // Get package version
 const packageVersion = getPackageVersion();
@@ -1150,7 +1151,8 @@ export function mountWebUI(app, dirname, accountManager) {
             const healthData = accountManager.getStrategyHealthData();
             res.json({
                 status: 'ok',
-                ...healthData
+                ...healthData,
+                providerPools: providerAccountManager.getHealthData()
             });
         } catch (error) {
             logger.error('[WebUI] Error fetching strategy health:', error);

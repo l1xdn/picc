@@ -41,6 +41,7 @@ Cloud Code keeps its existing unprefixed IDs for backward compatibility and also
 - Pi provider credentials are stored in `~/.config/antigravity-proxy/router-auth.json` with mode `0600`.
 - API-key and OAuth credentials share Pi's credential shapes and are resolved/refreshed by Pi's provider runtime.
 - Pi providers support multiple enabled credentials per provider. GitHub Copilot and OpenAI Codex availability is discovered per account and cached briefly; incompatible accounts are excluded before dispatch. API-key providers without a model-availability endpoint retain Pi's configured provider catalog.
+- The global account-selection setting applies to Cloud Code and every Pi provider pool. Sticky preserves provider-account affinity, round-robin rotates compatible accounts, and hybrid scores health, token-bucket capacity, provider-reported quota, and LRU freshness. Retryable authentication, rate-limit, network, and server failures fail over to another compatible account before returning an error.
 
 ## Inbound router keys
 

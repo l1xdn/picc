@@ -1,12 +1,17 @@
 import { builtinModels } from '@earendil-works/pi-ai/providers/all';
 import { config } from '../config.js';
 import { routerCredentialStore } from './credential-store.js';
+import { ProviderAccountManager } from './provider-account-manager.js';
 import {
     getProviderAccountModelAvailability,
     unionCatalogModelIds
 } from './model-availability.js';
 
 export const piModels = builtinModels({ credentials: routerCredentialStore });
+export const providerAccountManager = new ProviderAccountManager({
+    credentialStore: routerCredentialStore,
+    models: piModels
+});
 
 const cleanModelId = value => String(value || '').trim().replace(/\s*\[1m\]\s*$/i, '');
 
@@ -45,11 +50,8 @@ export async function getAvailablePiCatalog(providerIds, { force = false } = {})
     });
 }
 
-export async function selectProviderAccount(providerId, modelId) {
-    const availability = await getProviderAccountModelAvailability(providerId, {
-        credentialStore: routerCredentialStore
-    });
-    return routerCredentialStore.selectAccount(providerId, modelId, availability);
+export async function selectProviderAccount(providerId, modelId, options = {}) {
+    return providerAccountManager.selectAccount(providerId, modelId, options);
 }
 
 export async function getProviderStatuses() {

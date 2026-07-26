@@ -3,6 +3,7 @@ export * from './credential-store.js';
 export * from './catalog.js';
 export * from './model-registry.js';
 export * from './model-availability.js';
+export * from './provider-account-manager.js';
 export * from './oauth-manager.js';
 export * from './protocol.js';
 export * from './request-handler.js';

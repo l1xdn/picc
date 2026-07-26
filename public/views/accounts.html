@@ -85,7 +85,7 @@
                 <div class="flex items-end justify-between mb-3">
                     <div>
                         <h2 class="text-sm font-semibold text-white flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-neon-purple"></span><span x-text="provider.name"></span></h2>
-                        <p class="text-[10px] text-gray-600 font-mono mt-1" x-text="provider.id + ' · OAuth · provider quota shown only when reported'"></p>
+                        <p class="text-[10px] text-gray-600 font-mono mt-1" x-text="provider.id + ' · OAuth · ' + (provider.strategy || 'hybrid') + ' distribution'"></p>
                     </div>
                     <span class="text-[10px] text-gray-600 font-mono" x-text="provider.accounts.length + (provider.accounts.length === 1 ? ' account' : ' accounts')"></span>
                 </div>
@@ -128,7 +128,7 @@
                                         <template x-if="account.quota?.status === 'unavailable'"><span class="text-[10px] font-mono text-yellow-500/70 whitespace-nowrap cursor-help" :title="account.quota.reason">Unavailable</span></template>
                                     </td>
                                     <td class="py-4">
-                                        <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full" :class="account.enabled ? 'bg-neon-green shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-gray-600'"></span><span class="text-xs font-mono font-semibold" :class="account.enabled ? 'text-neon-green' : 'text-gray-500'" x-text="account.enabled ? 'OK' : 'OFF'"></span></div>
+                                        <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full" :class="account.enabled ? 'bg-neon-green shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-gray-600'"></span><span class="text-xs font-mono font-semibold" :class="account.enabled ? 'text-neon-green' : 'text-gray-500'" x-text="account.enabled ? (Number.isFinite(account.strategyHealth?.healthScore) ? Math.round(account.strategyHealth.healthScore) : 'OK') : 'OFF'"></span></div>
                                     </td>
                                     <td class="py-4 pr-6">
                                         <div class="flex justify-end gap-2">
